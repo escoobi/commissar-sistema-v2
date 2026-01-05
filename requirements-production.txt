@@ -1,29 +1,24 @@
 # =====================================================
-# Dependências para Produção
+# Dependências para Produção - Versão Estável
 # =====================================================
 
 # Framework Web
 Flask==3.0.0
-Flask-PyMongo==2.3.0
+Werkzeug==3.0.1
 Flask-Cors==4.0.0
 
 # Banco de Dados
 pymongo==4.6.0
+Flask-PyMongo==2.3.0
 
 # Data Processing
 pandas==2.1.3
-
-# Utilidades
-python-dotenv==1.0.0
-Werkzeug==3.0.1
-
-# Relatórios
-reportlab==4.4.7
+numpy==1.24.3
 
 # Servidor WSGI (Produção)
 gunicorn==21.2.0
 
-# Segurança
+# Configuração
 python-dotenv==1.0.0
 
 # Logging e Monitoramento
@@ -41,3 +36,15 @@ marshmallow==3.20.1
 # Cache
 cachelib==0.13.0
 Flask-Caching==2.1.0
+
+# Relatórios
+reportlab==4.0.9
+
+# HTTP Requests
+requests==2.31.0
+
+# Utils
+click==8.1.7
+itsdangerous==2.1.2
+MarkupSafe==2.1.3
+

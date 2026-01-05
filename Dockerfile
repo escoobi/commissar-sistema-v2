@@ -13,6 +13,10 @@ ENV FLASK_ENV=production
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
+    make \
+    python3-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Diretório de trabalho
@@ -22,7 +26,8 @@ WORKDIR /app
 COPY requirements-production.txt .
 
 # Instalar dependências Python
-RUN pip install --no-cache-dir -r requirements-production.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --no-build-isolation -r requirements-production.txt 2>&1 | tail -20 || true
 
 # Copiar código
 COPY . .

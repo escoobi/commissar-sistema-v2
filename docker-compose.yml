@@ -39,6 +39,8 @@ services:
       MONGO_URI: mongodb://admin:${MONGO_PASSWORD:-changeme}@mongodb:27017/comissao_db?authSource=admin
       LOG_LEVEL: INFO
       WORKERS: 4
+      PYTHONUNBUFFERED: 1
+      PYTHONDONTWRITEBYTECODE: 1
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
@@ -53,8 +55,6 @@ services:
       start_period: 10s
     networks:
       - comissao-network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   # Nginx Reverse Proxy
   nginx:
