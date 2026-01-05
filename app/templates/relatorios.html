@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Relatórios</h1>
+        <p class="subtitle">Análise de comissões por vendedor</p>
+        
+        <!-- Resumo por Vendedor -->
+        <div class="box mb-5">
+            <h2 class="title is-4">
+                <i class="fas fa-user-tie"></i> Resumo por Vendedor
+            </h2>
+            
+            <div class="table-container">
+                <table class="table is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Vendedor</th>
+                            <th class="has-text-right">Total Comissões</th>
+                            <th class="has-text-right">Quantidade</th>
+                            <th class="has-text-right">Média</th>
+                            <th class="has-text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-vendedor">
+                        <tr>
+                            <td colspan="5" class="has-text-centered has-text-grey">
+                                <i class="fas fa-spinner fa-spin"></i> Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Botão Processar Comissões -->
+            <div class="level mt-4">
+                <div class="level-left">
+                    <div class="level-item">
+                        <button class="button is-success is-medium" onclick="processarComissoes()" id="btn-processar">
+                            <span class="icon"><i class="fas fa-check-circle"></i></span>
+                            <span>Processar Comissões</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item" id="status-processamento" style="display: none;">
+                        <p class="help is-success" id="texto-sucesso"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal de Detalhes do Vendedor -->
+<div class="modal" id="modal-detalhes-vendedor">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 95%; margin: 0 auto;">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Detalhes de Vendas</p>
+            <button class="delete" aria-label="close" onclick="fecharDetalhesVendedor()"></button>
+        </header>
+        <section class="modal-card-body" style="overflow-y: auto; overflow-x: auto; max-height: 600px;">
+            <div id="modal-detalhes-vendedor-conteudo">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </section>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    carregarResumoVendedor();
+});
+
+function carregarResumoVendedor() {
+    fetch('/api/resumo/vendedor')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('tbody-vendedor');
+            
+            if (data.dados && data.dados.length > 0) {
+                tbody.innerHTML = data.dados.map(item => {
+                    const nome = item.vendor_name || item._id || 'Desconhecido';
+                    const total = parseFloat(item.total_comissoes) || 0;
+                    const qtd = parseInt(item.quantidade_propostas) || parseInt(item.quantidade) || 0;
+                    const media = qtd > 0 ? total / qtd : 0;
+                    
+                    // Formata em Real brasileiro
+                    const totalFormatado = total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const mediaFormatada = media.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    return `
+                        <tr>
+                            <td><strong>${nome}</strong></td>
+                            <td class="has-text-right">R$ ${totalFormatado}</td>
+                            <td class="has-text-right">${qtd}</td>
+                            <td class="has-text-right">R$ ${mediaFormatada}</td>
+                            <td class="has-text-center">
+                                <button class="button is-small is-info" onclick="abrirDetalhesVendedor('${nome}')">
+                                    <span class="icon is-small"><i class="fas fa-eye"></i></span>
+                                    <span>Detalhes</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="has-text-centered has-text-grey">Nenhum dado disponível</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            document.getElementById('tbody-vendedor').innerHTML = '<tr><td colspan="5" class="has-text-danger">Erro ao carregar dados</td></tr>';
+        });
+}
+
+function abrirDetalhesVendedor(nomeVendedor) {
+    fetch(`/api/vendedor/vendas?nome=${encodeURIComponent(nomeVendedor)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.dados) {
+                const vendas = data.dados;
+                const ehInterno = data.eh_interno || false;
+                const avisos = data.avisos || [];
+                
+                // Agrupa vendas por Pedido e soma valores
+                const vendaAgrupada = {};
+                vendas.forEach(venda => {
+                    const pedido = venda['Nº Pedido'] || venda['N° Pedido'] || venda.pedido || '-';
+                    const modelo = venda.modelo || venda.Modelo || '-';
+                    const valor = parseFloat(venda.valor_venda || venda.Valor || 0);
+                    const valorTabela = parseFloat(venda.valor_tabela || 0);
+                    const comissao = parseFloat(venda.comissao || 0);
+                    const meta = parseFloat(venda.percentual_meta || 0);
+                    const aliquota = parseFloat(venda.aliquota || 0);
+                    
+                    const chave = pedido + '|' + modelo;
+                    
+                    if (!vendaAgrupada[chave]) {
+                        vendaAgrupada[chave] = {
+                            pedido: pedido,
+                            modelo: modelo,
+                            valor_tabela: valorTabela,
+                            valor_total: 0,
+                            comissao_total: 0,
+                            meta: meta,
+                            aliquota: aliquota
+                        };
+                    }
+                    
+                    vendaAgrupada[chave].valor_total += valor;
+                    vendaAgrupada[chave].comissao_total += comissao;
+                });
+                
+                // Converte para array
+                const vendas_agrupadas = Object.values(vendaAgrupada);
+                
+                // Tag de interno/externo
+                const tagInterno = ehInterno ? '<span class="tag is-danger">Interno</span>' : '<span class="tag is-warning">Externo</span>';
+                
+                let html = `<h3 class="title is-5">Vendas de ${nomeVendedor} ${tagInterno}</h3>`;
+                
+                // Adicionar avisos se houver
+                if (avisos.length > 0) {
+                    html += '<div class="notification is-warning" style="margin-bottom: 1rem;">';
+                    html += '<button class="delete" onclick="this.parentElement.remove()"></button>';
+                    html += '<strong>⚠️ Avisos:</strong><br>';
+                    avisos.forEach(aviso => {
+                        html += `<div>${aviso}</div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                html += '<div style="width: 100%; overflow-x: auto; min-width: 900px;">';
+                html += '<table class="table is-striped is-fullwidth is-narrow" style="font-size: 0.85rem; width: 100%; min-width: 900px;">';
+                html += '<thead><tr><th style="width: 80px;">Pedido</th><th style="width: 140px;">Modelo</th><th style="width: 110px; text-align: right;">Valor de Tabela</th><th style="width: 110px; text-align: right;">Valor da Venda</th><th style="width: 70px; text-align: center;">Meta %</th><th style="width: 110px; text-align: right;">Comissão</th><th style="width: 70px; text-align: center;">Alíquota</th></tr></thead>';
+                html += '<tbody>';
+                
+                vendas_agrupadas.forEach(venda => {
+                    const valorTabelaFormatado = venda.valor_tabela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const valorFormatado = venda.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const comissaoFormatada = venda.comissao_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    html += `<tr>
+                        <td style="width: 80px; white-space: nowrap;">${venda.pedido}</td>
+                        <td style="width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${venda.modelo}</td>
+                        <td style="width: 110px; text-align: right; white-space: nowrap;">R$ ${valorTabelaFormatado}</td>
+                        <td style="width: 110px; text-align: right; white-space: nowrap;">R$ ${valorFormatado}</td>
+                        <td style="width: 70px; text-align: center; white-space: nowrap;">${venda.meta.toFixed(1)}%</td>
+                        <td style="width: 110px; text-align: right; white-space: nowrap;">R$ ${comissaoFormatada}</td>
+                        <td style="width: 70px; text-align: center; white-space: nowrap;">${venda.aliquota.toFixed(2)}%</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                
+                document.getElementById('modal-detalhes-vendedor-conteudo').innerHTML = html;
+                document.getElementById('modal-detalhes-vendedor').classList.add('is-active');
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+}
+
+function fecharDetalhesVendedor() {
+    document.getElementById('modal-detalhes-vendedor').classList.remove('is-active');
+}
+
+function processarComissoes() {
+    const btn = document.getElementById('btn-processar');
+    const statusDiv = document.getElementById('status-processamento');
+    const statusTexto = document.getElementById('texto-sucesso');
+    
+    // Desabilita o botão
+    btn.disabled = true;
+    btn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Processando...</span>';
+    
+    fetch('/api/comissoes/processar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        
+        // Se for PDF (application/pdf)
+        if (contentType && contentType.includes('application/pdf')) {
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'comissoes.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                return {
+                    status: 'sucesso',
+                    mensagem: 'Comissões processadas com sucesso! PDF baixado.'
+                };
+            });
+        } else {
+            // Senão, trata como JSON
+            return response.json();
+        }
+    })
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="icon"><i class="fas fa-check-circle"></i></span><span>Processar Comissões</span>';
+        
+        if (data.status === 'sucesso' || data.status === 'sucesso_sem_pdf') {
+            statusDiv.style.display = 'block';
+            statusTexto.innerHTML = data.mensagem || 'Comissões processadas com sucesso!';
+            
+            // Recarrega a tabela
+            setTimeout(() => {
+                carregarResumoVendedor();
+                statusDiv.style.display = 'none';
+            }, 2000);
+        } else {
+            alert('Erro ao processar comissões: ' + (data.mensagem || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<span class="icon"><i class="fas fa-check-circle"></i></span><span>Processar Comissões</span>';
+        alert('Erro ao processar comissões: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

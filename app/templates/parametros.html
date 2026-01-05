@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}Parâmetros de Alíquota - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            <span class="icon"><i class="fas fa-sliders-h"></i></span>
+            <span>Parâmetros de Alíquota</span>
+        </h1>
+        <p class="subtitle">Gerencie as alíquotas de comissão para vendedores internos e externos</p>
+
+        <!-- Tabs para Interno e Externo -->
+        <div class="tabs is-boxed">
+            <ul>
+                <li class="tab-link is-active" data-tab="interno" onclick="mudarAba('interno')">
+                    <a>
+                        <span class="icon"><i class="fas fa-user-tie"></i></span>
+                        <span>Vendedor Interno</span>
+                    </a>
+                </li>
+                <li class="tab-link" data-tab="externo" onclick="mudarAba('externo')">
+                    <a>
+                        <span class="icon"><i class="fas fa-user-clock"></i></span>
+                        <span>Vendedor Externo</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- TAB INTERNO -->
+        <div id="tab-interno" class="tab-content is-active">
+            <div class="columns is-multiline">
+                <!-- Formulário para Interno -->
+                <div class="column is-5">
+                    <div class="box">
+                        <h2 class="subtitle is-5">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>Adicionar Alíquota</span>
+                        </h2>
+                        <form id="form-interno">
+                            <div class="field">
+                                <label class="label">Tipo de Moto</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="moto-tipo-interno" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="Alta CC">Alta CC</option>
+                                            <option value="Baixa CC">Baixa CC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Meta % Mínima</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="meta-min-interno" placeholder="Ex: 95" step="0.01" required>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Meta % Máxima</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="meta-max-interno" placeholder="Ex: 99.99" step="0.01">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Alíquota (%)</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="aliquota-interno" placeholder="Ex: 1.2" step="0.01" required>
+                                </div>
+                            </div>
+
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">
+                                        <span class="icon"><i class="fas fa-save"></i></span>
+                                        <span>Adicionar</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista de Alíquotas Interno -->
+                <div class="column is-7">
+                    <div class="box">
+                        <h2 class="subtitle is-5">
+                            <span class="icon"><i class="fas fa-list"></i></span>
+                            <span>Alíquotas Cadastradas</span>
+                        </h2>
+                        <div id="lista-interno" class="content">
+                            <p class="has-text-grey">Carregando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB EXTERNO -->
+        <div id="tab-externo" class="tab-content">
+            <div class="columns is-multiline">
+                <!-- Formulário para Externo -->
+                <div class="column is-5">
+                    <div class="box">
+                        <h2 class="subtitle is-5">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>Adicionar Alíquota</span>
+                        </h2>
+                        <form id="form-externo">
+                            <div class="field">
+                                <label class="label">Meta % Mínima</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="meta-min-externo" placeholder="Ex: 97" step="0.01" required>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Meta % Máxima</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="meta-max-externo" placeholder="Deixar em branco para sem limite" step="0.01">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Alíquota (%)</label>
+                                <div class="control">
+                                    <input class="input" type="number" id="aliquota-externo" placeholder="Ex: 1.2" step="0.01" required>
+                                </div>
+                            </div>
+
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">
+                                        <span class="icon"><i class="fas fa-save"></i></span>
+                                        <span>Adicionar</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista de Alíquotas Externo -->
+                <div class="column is-7">
+                    <div class="box">
+                        <h2 class="subtitle is-5">
+                            <span class="icon"><i class="fas fa-list"></i></span>
+                            <span>Alíquotas Cadastradas</span>
+                        </h2>
+                        <div id="lista-externo" class="content">
+                            <p class="has-text-grey">Carregando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal de Edição -->
+<div id="modal-editar" class="modal">
+    <div class="modal-background" onclick="fecharModalEditar()"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Editar Alíquota</p>
+            <button class="delete" aria-label="close" onclick="fecharModalEditar()"></button>
+        </header>
+        <section class="modal-card-body">
+            <form id="form-editar">
+                <div class="field" id="field-tipo-moto" style="display: none;">
+                    <label class="label">Tipo de Moto</label>
+                    <div class="control">
+                        <input class="input" type="text" id="editar-tipo-moto" readonly>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Meta % Mínima</label>
+                    <div class="control">
+                        <input class="input" type="number" id="editar-meta-min" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Meta % Máxima</label>
+                    <div class="control">
+                        <input class="input" type="number" id="editar-meta-max" step="0.01">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Alíquota (%)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="editar-aliquota" step="0.01" required>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="button is-primary" onclick="salvarEdicao()">Salvar</button>
+        </footer>
+    </div>
+</div>
+
+<style>
+    .tab-link {
+        cursor: pointer;
+    }
+    
+    .tab-link.is-active a {
+        border-bottom-color: #3273dc;
+        color: #3273dc;
+    }
+
+    .tab-content {
+        display: none !important;
+    }
+
+    .tab-content.is-active {
+        display: block !important;
+    }
+
+    .aliquota-card {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #f5f5f5;
+        border-left: 4px solid #3273dc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .aliquota-info {
+        flex: 1;
+    }
+
+    .aliquota-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .aliquota-actions button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+</style>
+
+<script>
+let parametrosInterno = [];
+let parametrosExterno = [];
+
+// Carregar dados ao iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    carregarParametrosInterno();
+    carregarParametrosExterno();
+
+    // Event listeners dos formulários
+    document.getElementById('form-interno').addEventListener('submit', adicionarParametroInterno);
+    document.getElementById('form-externo').addEventListener('submit', adicionarParametroExterno);
+});
+
+function mudarAba(abaName) {
+    // Remover classe ativa de todas as abas e botões
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('is-active');
+    });
+    document.querySelectorAll('.tab-link').forEach(btn => {
+        btn.classList.remove('is-active');
+    });
+    
+    // Adicionar classe ativa à aba selecionada
+    const abaElement = document.getElementById(`tab-${abaName}`);
+    if (abaElement) {
+        abaElement.classList.add('is-active');
+    }
+    
+    // Adicionar classe ativa ao botão clicado
+    const btnElement = document.querySelector(`[data-tab="${abaName}"]`);
+    if (btnElement) {
+        btnElement.classList.add('is-active');
+    }
+}
+
+function carregarParametrosInterno() {
+    fetch('/api/parametros/interno')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                parametrosInterno = data.dados || [];
+                renderizarParametrosInterno();
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar parâmetros internos:', error);
+            document.getElementById('lista-interno').innerHTML = 
+                '<p class="has-text-danger">Erro ao carregar parâmetros</p>';
+        });
+}
+
+function carregarParametrosExterno() {
+    fetch('/api/parametros/externo')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                parametrosExterno = data.dados || [];
+                renderizarParametrosExterno();
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar parâmetros externos:', error);
+            document.getElementById('lista-externo').innerHTML = 
+                '<p class="has-text-danger">Erro ao carregar parâmetros</p>';
+        });
+}
+
+function renderizarParametrosInterno() {
+    const container = document.getElementById('lista-interno');
+    
+    if (parametrosInterno.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">Nenhum parâmetro cadastrado</p>';
+        return;
+    }
+
+    let html = '';
+    parametrosInterno.forEach(param => {
+        const metaMax = param.meta_max !== null ? param.meta_max.toFixed(2) : '∞';
+        html += `
+            <div class="aliquota-card">
+                <div class="aliquota-info">
+                    <strong>${param.tipo_moto}</strong>
+                    <br>
+                    <small>Meta: ${param.meta_min.toFixed(2)}% - ${metaMax}%</small>
+                    <br>
+                    <span class="tag is-info">Alíquota: ${(param.aliquota * 100).toFixed(2)}%</span>
+                </div>
+                <div class="aliquota-actions">
+                    <button class="button is-small is-warning" onclick="editarParametroInterno('${param._id}')">
+                        <span class="icon is-small"><i class="fas fa-edit"></i></span>
+                    </button>
+                    <button class="button is-small is-danger" onclick="deletarParametroInterno('${param._id}')">
+                        <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function renderizarParametrosExterno() {
+    const container = document.getElementById('lista-externo');
+    
+    if (parametrosExterno.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">Nenhum parâmetro cadastrado</p>';
+        return;
+    }
+
+    let html = '';
+    parametrosExterno.forEach(param => {
+        const metaMax = param.meta_max !== null ? param.meta_max.toFixed(2) : '∞';
+        html += `
+            <div class="aliquota-card">
+                <div class="aliquota-info">
+                    <strong>Vendedor Externo</strong>
+                    <br>
+                    <small>Meta: ${param.meta_min.toFixed(2)}% - ${metaMax}%</small>
+                    <br>
+                    <span class="tag is-warning">Alíquota: ${(param.aliquota * 100).toFixed(2)}%</span>
+                </div>
+                <div class="aliquota-actions">
+                    <button class="button is-small is-warning" onclick="editarParametroExterno('${param._id}')">
+                        <span class="icon is-small"><i class="fas fa-edit"></i></span>
+                    </button>
+                    <button class="button is-small is-danger" onclick="deletarParametroExterno('${param._id}')">
+                        <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function adicionarParametroInterno(e) {
+    e.preventDefault();
+
+    const dados = {
+        tipo_moto: document.getElementById('moto-tipo-interno').value,
+        meta_min: parseFloat(document.getElementById('meta-min-interno').value),
+        meta_max: document.getElementById('meta-max-interno').value ? parseFloat(document.getElementById('meta-max-interno').value) : null,
+        aliquota: parseFloat(document.getElementById('aliquota-interno').value) / 100
+    };
+
+    fetch('/api/parametros/interno', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            alert('Parâmetro adicionado com sucesso!');
+            document.getElementById('form-interno').reset();
+            carregarParametrosInterno();
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar parâmetro');
+    });
+}
+
+function adicionarParametroExterno(e) {
+    e.preventDefault();
+
+    const dados = {
+        meta_min: parseFloat(document.getElementById('meta-min-externo').value),
+        meta_max: document.getElementById('meta-max-externo').value ? parseFloat(document.getElementById('meta-max-externo').value) : null,
+        aliquota: parseFloat(document.getElementById('aliquota-externo').value) / 100
+    };
+
+    fetch('/api/parametros/externo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            alert('Parâmetro adicionado com sucesso!');
+            document.getElementById('form-externo').reset();
+            carregarParametrosExterno();
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar parâmetro');
+    });
+}
+
+function deletarParametroInterno(id) {
+    if (confirm('Tem certeza que deseja deletar este parâmetro?')) {
+        fetch(`/api/parametros/interno/${id}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    alert('Parâmetro deletado com sucesso!');
+                    carregarParametrosInterno();
+                } else {
+                    alert('Erro: ' + data.mensagem);
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+    }
+}
+
+function deletarParametroExterno(id) {
+    if (confirm('Tem certeza que deseja deletar este parâmetro?')) {
+        fetch(`/api/parametros/externo/${id}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    alert('Parâmetro deletado com sucesso!');
+                    carregarParametrosExterno();
+                } else {
+                    alert('Erro: ' + data.mensagem);
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+    }
+}
+
+function editarParametroInterno(id) {
+    const param = parametrosInterno.find(p => p._id === id);
+    if (!param) {
+        alert('Parâmetro não encontrado');
+        return;
+    }
+    abrirModalEditar(id, 'interno', param);
+}
+
+function editarParametroExterno(id) {
+    const param = parametrosExterno.find(p => p._id === id);
+    if (!param) {
+        alert('Parâmetro não encontrado');
+        return;
+    }
+    abrirModalEditar(id, 'externo', param);
+}
+
+function abrirModalEditar(id, tipo, param) {
+    window.paramEditandoId = id;
+    window.paramEditandoTipo = tipo;
+
+    document.getElementById('editar-meta-min').value = param.meta_min;
+    document.getElementById('editar-meta-max').value = param.meta_max || '';
+    document.getElementById('editar-aliquota').value = (param.aliquota * 100).toFixed(2);
+
+    if (tipo === 'interno') {
+        document.getElementById('field-tipo-moto').style.display = 'block';
+        document.getElementById('editar-tipo-moto').value = param.tipo_moto;
+    } else {
+        document.getElementById('field-tipo-moto').style.display = 'none';
+    }
+
+    document.getElementById('modal-editar').classList.add('is-active');
+}
+
+function fecharModalEditar() {
+    document.getElementById('modal-editar').classList.remove('is-active');
+    window.paramEditandoId = null;
+    window.paramEditandoTipo = null;
+}
+
+function salvarEdicao() {
+    const id = window.paramEditandoId;
+    const tipo = window.paramEditandoTipo;
+
+    const dados = {
+        meta_min: parseFloat(document.getElementById('editar-meta-min').value),
+        meta_max: document.getElementById('editar-meta-max').value ? parseFloat(document.getElementById('editar-meta-max').value) : null,
+        aliquota: parseFloat(document.getElementById('editar-aliquota').value) / 100
+    };
+
+    const endpoint = tipo === 'interno' 
+        ? `/api/parametros/interno/${id}` 
+        : `/api/parametros/externo/${id}`;
+
+    fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            alert('Parâmetro atualizado com sucesso!');
+            fecharModalEditar();
+            if (tipo === 'interno') {
+                carregarParametrosInterno();
+            } else {
+                carregarParametrosExterno();
+            }
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar parâmetro');
+    });
+}
+</script>
+{% endblock %}

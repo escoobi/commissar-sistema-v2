@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+
+{% block title %}Taxas Progressivas - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            <span class="icon"><i class="fas fa-chart-line"></i></span>
+            <span>Tabelas de Taxas Progressivas</span>
+        </h1>
+        <p class="subtitle">Configure coeficientes progressivos por número de parcelas para cada forma de recebimento</p>
+
+        <!-- Aviso Informativo -->
+        <div class="notification is-info is-light">
+            <button class="delete"></button>
+            <p><strong>ℹ️ Informação:</strong> As taxas progressivas permitem aplicar descontos diferentes para cada parcela. Por exemplo, a 1ª parcela pode ter 0% de desconto, enquanto a 2ª parcela tem 0.5151% de desconto.</p>
+        </div>
+
+        <!-- Seção: Criar Nova Tabela -->
+        <div class="box">
+            <h2 class="subtitle is-5">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Criar Nova Tabela</span>
+            </h2>
+            
+            <div class="columns">
+                <div class="column is-4">
+                    <div class="field">
+                        <label class="label">Nome da Tabela Progressiva</label>
+                        <div class="control">
+                            <input class="input" type="text" id="nova-forma" placeholder="Ex: Cartão 10x, Cheque 10x">
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-2">
+                    <div class="field">
+                        <label class="label">Nº de Parcelas</label>
+                        <div class="control">
+                            <input class="input" type="number" id="nova-parcelas" placeholder="Ex: 10" min="1" max="60">
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-6">
+                    <div class="field">
+                        <label class="label">Descrição (opcional)</label>
+                        <div class="control">
+                            <input class="input" type="text" id="nova-descricao" placeholder="Ex: Tabela padrão para CARTÃO 10x">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de Entrada de Coeficientes -->
+            <div id="area-coeficientes" style="display: none;">
+                <hr>
+                <h3 class="subtitle is-6">Coeficientes por Parcela (%)</h3>
+                <p class="is-size-7 has-text-grey">Digite os coeficientes de desconto para cada parcela:</p>
+                
+                <div id="inputs-coeficientes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 1rem;"></div>
+                
+                <div class="field is-grouped">
+                    <p class="control">
+                        <button class="button is-success" onclick="criarNovaTabela()">
+                            <span class="icon"><i class="fas fa-save"></i></span>
+                            <span>Salvar Tabela</span>
+                        </button>
+                    </p>
+                    <p class="control">
+                        <button class="button" onclick="cancelarNovaTabela()">Cancelar</button>
+                    </p>
+                </div>
+            </div>
+
+            <div id="area-botao-gerar" style="display: none;">
+                <button class="button is-info" onclick="mostrarInputsCoeficientes()">
+                    <span class="icon"><i class="fas fa-arrow-down"></i></span>
+                    <span>Gerar Campos de Coeficientes</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Seção: Listar Tabelas -->
+        <div class="box">
+            <h2 class="subtitle is-5">
+                <span class="icon"><i class="fas fa-list"></i></span>
+                <span>Tabelas Cadastradas</span>
+            </h2>
+            <div id="lista-tabelas" class="content">
+                <p class="has-text-grey">Carregando tabelas...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para Editar Coeficientes -->
+<div id="modal-editar" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Editar Coeficientes</p>
+            <button class="delete" aria-label="close" onclick="fecharModalEditar()"></button>
+        </header>
+        <section class="modal-card-body">
+            <div id="conteudo-modal-editar"></div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="button is-success" onclick="salvarEdicao()">Salvar</button>
+        </footer>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div id="modal-confirmacao" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Confirmação</p>
+            <button class="delete" aria-label="close" onclick="fecharModalConfirmacao()"></button>
+        </header>
+        <section class="modal-card-body">
+            <p id="modal-mensagem"></p>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalConfirmacao()">Cancelar</button>
+            <button class="button is-danger" id="btn-confirmar" onclick="confirmarAcao()">Confirmar</button>
+        </footer>
+    </div>
+</div>
+
+<style>
+    .tabela-card {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #f5f5f5;
+        border-left: 4px solid #3273dc;
+        border-radius: 4px;
+    }
+
+    .tabela-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .tabela-header h3 {
+        margin: 0;
+        font-weight: 600;
+        color: #363636;
+    }
+
+    .coeficientes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 0.5rem;
+        margin: 0.75rem 0;
+        padding: 0.75rem;
+        background-color: #fff;
+        border-radius: 4px;
+        border: 1px solid #dbdbdb;
+    }
+
+    .coeficiente-item {
+        text-align: center;
+        padding: 0.5rem;
+        background-color: #f0f0f0;
+        border-radius: 3px;
+        font-size: 0.85rem;
+    }
+
+    .coeficiente-numero {
+        font-weight: 600;
+        color: #485fc7;
+    }
+
+    .coeficiente-valor {
+        color: #48c774;
+        font-weight: 600;
+    }
+
+    .tabela-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .tabela-actions button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+</style>
+
+<script>
+let tabelas = [];
+let tabelaEmEdicao = null;
+let acaoAtual = null;
+let tabelaParaDeleta = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    carregarTabelas();
+    
+    // Fechar notificação
+    document.querySelectorAll('.notification .delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.parentElement.remove();
+        });
+    });
+    
+    // Monitor para número de parcelas
+    document.getElementById('nova-parcelas').addEventListener('change', function() {
+        if (this.value) {
+            document.getElementById('area-botao-gerar').style.display = 'block';
+            document.getElementById('area-coeficientes').style.display = 'none';
+        }
+    });
+});
+
+function carregarTabelas() {
+    fetch('/api/taxas-progressivas')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                tabelas = data.dados;
+                renderizarTabelas();
+            } else {
+                alert('Erro: ' + data.mensagem);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao carregar tabelas');
+        });
+}
+
+function renderizarTabelas() {
+    const container = document.getElementById('lista-tabelas');
+    
+    if (tabelas.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">Nenhuma tabela cadastrada.</p>';
+        return;
+    }
+    
+    let html = '';
+    tabelas.forEach(tabela => {
+        const coefs = tabela.coeficientes || [];
+        const descricao = tabela.descricao || 'Sem descrição';
+        
+        html += `
+            <div class="tabela-card">
+                <div class="tabela-header">
+                    <div>
+                        <h3>${tabela.forma_recebimento} - ${tabela.numero_parcelas}x</h3>
+                        <p class="is-size-7 has-text-grey">${descricao}</p>
+                    </div>
+                    <div class="tabela-actions">
+                        <button class="button is-info is-small" onclick="abrirModalEditar('${tabela._id}')">
+                            <span class="icon"><i class="fas fa-edit"></i></span>
+                            <span>Editar</span>
+                        </button>
+                        <button class="button is-danger is-small" onclick="confirmarDelecao('${tabela._id}', '${tabela.forma_recebimento}')">
+                            <span class="icon"><i class="fas fa-trash"></i></span>
+                            <span>Deletar</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="coeficientes-grid">
+        `;
+        
+        coefs.forEach((coef, idx) => {
+            html += `
+                <div class="coeficiente-item">
+                    <div class="coeficiente-numero">Parc ${idx + 1}</div>
+                    <div class="coeficiente-valor">${coef.toFixed(4)}%</div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function mostrarInputsCoeficientes() {
+    const parcelas = parseInt(document.getElementById('nova-parcelas').value);
+    
+    if (!parcelas || parcelas < 1) {
+        alert('Digite um número válido de parcelas');
+        return;
+    }
+    
+    const container = document.getElementById('inputs-coeficientes');
+    let html = '';
+    
+    for (let i = 1; i <= parcelas; i++) {
+        html += `
+            <div class="field">
+                <label class="label is-size-7">Parc. ${i}</label>
+                <div class="control">
+                    <input class="input is-small coef-input" 
+                           type="number" 
+                           id="coef-${i}" 
+                           step="0.0001" 
+                           min="0" 
+                           max="100"
+                           placeholder="0">
+                </div>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('area-botao-gerar').style.display = 'none';
+    document.getElementById('area-coeficientes').style.display = 'block';
+}
+
+function criarNovaTabela() {
+    const forma = document.getElementById('nova-forma').value.trim();
+    const parcelas = parseInt(document.getElementById('nova-parcelas').value);
+    const descricao = document.getElementById('nova-descricao').value.trim();
+    
+    if (!forma || !parcelas) {
+        alert('Preencha os campos obrigatórios');
+        return;
+    }
+    
+    // Coleta os coeficientes
+    const coeficientes = [];
+    for (let i = 1; i <= parcelas; i++) {
+        const valor = parseFloat(document.getElementById(`coef-${i}`).value) || 0;
+        coeficientes.push(valor);
+    }
+    
+    fetch('/api/taxas-progressivas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            forma_recebimento: forma,
+            numero_parcelas: parcelas,
+            coeficientes: coeficientes,
+            descricao: descricao
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            alert(data.mensagem);
+            cancelarNovaTabela();
+            carregarTabelas();
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar tabela');
+    });
+}
+
+function cancelarNovaTabela() {
+    document.getElementById('nova-forma').value = '';
+    document.getElementById('nova-parcelas').value = '';
+    document.getElementById('nova-descricao').value = '';
+    document.getElementById('inputs-coeficientes').innerHTML = '';
+    document.getElementById('area-coeficientes').style.display = 'none';
+    document.getElementById('area-botao-gerar').style.display = 'none';
+}
+
+function abrirModalEditar(tabelaId) {
+    const tabela = tabelas.find(t => t._id === tabelaId);
+    if (!tabela) return;
+    
+    tabelaEmEdicao = tabela;
+    const coefs = tabela.coeficientes || [];
+    
+    let html = `
+        <div class="field">
+            <label class="label">Nome da Tabela Progressiva</label>
+            <div class="control">
+                <input class="input" 
+                       type="text" 
+                       id="edit-nome-tabela"
+                       value="${tabela.forma_recebimento}">
+            </div>
+        </div>
+        
+        <hr>
+        <h3 class="subtitle is-6">Coeficientes por Parcela (%)</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem;">
+    `;
+    
+    coefs.forEach((coef, idx) => {
+        html += `
+            <div class="field">
+                <label class="label is-size-7">Parcela ${idx + 1}</label>
+                <div class="control">
+                    <input class="input coef-edit" 
+                           type="number" 
+                           id="coef-edit-${idx}"
+                           step="0.0001"
+                           min="0"
+                           max="100"
+                           value="${coef.toFixed(4)}">
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    document.getElementById('conteudo-modal-editar').innerHTML = html;
+    document.getElementById('modal-editar').classList.add('is-active');
+}
+
+function fecharModalEditar() {
+    document.getElementById('modal-editar').classList.remove('is-active');
+    tabelaEmEdicao = null;
+}
+
+function salvarEdicao() {
+    if (!tabelaEmEdicao) return;
+    
+    const novoNome = document.getElementById('edit-nome-tabela').value.trim();
+    
+    if (!novoNome) {
+        alert('O nome da tabela não pode estar vazio');
+        return;
+    }
+    
+    const coeficientes = [];
+    for (let i = 0; i < tabelaEmEdicao.numero_parcelas; i++) {
+        const valor = parseFloat(document.getElementById(`coef-edit-${i}`).value) || 0;
+        coeficientes.push(valor);
+    }
+    
+    fetch(`/api/taxas-progressivas/${tabelaEmEdicao._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            forma_recebimento: novoNome,
+            coeficientes: coeficientes,
+            descricao: tabelaEmEdicao.descricao
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            alert(data.mensagem);
+            fecharModalEditar();
+            carregarTabelas();
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao salvar');
+    });
+}
+
+function confirmarDelecao(tabelaId, forma) {
+    tabelaParaDeleta = tabelaId;
+    acaoAtual = 'deletar';
+    document.getElementById('modal-mensagem').textContent = 
+        `Tem certeza que deseja deletar a tabela de "${forma}"?`;
+    document.getElementById('modal-confirmacao').classList.add('is-active');
+}
+
+function fecharModalConfirmacao() {
+    document.getElementById('modal-confirmacao').classList.remove('is-active');
+    tabelaParaDeleta = null;
+    acaoAtual = null;
+}
+
+function confirmarAcao() {
+    if (acaoAtual === 'deletar' && tabelaParaDeleta) {
+        fetch(`/api/taxas-progressivas/${tabelaParaDeleta}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                alert(data.mensagem);
+                fecharModalConfirmacao();
+                carregarTabelas();
+            } else {
+                alert('Erro: ' + data.mensagem);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao deletar');
+        });
+    }
+}
+</script>
+{% endblock %}

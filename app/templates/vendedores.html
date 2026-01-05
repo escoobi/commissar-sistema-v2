@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Vendedores - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Vendedores</h1>
+        <p class="subtitle">Lista de vendedores e suas informações</p>
+        
+        <div class="table-container">
+            <table class="table is-striped is-hoverable is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Vendedor</th>
+                        <th>Loja</th>
+                        <th>Total de Propostas</th>
+                        <th>Total de Comissões</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-vendedores">
+                    <tr>
+                        <td colspan="6" class="has-text-centered has-text-grey">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    carregarVendedores();
+});
+
+function carregarVendedores() {
+    fetch('/api/comissoes?per_page=100')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('tbody-vendedores');
+            
+            if (data.dados && data.dados.length > 0) {
+                // Agrupa por vendedor
+                const vendedores = {};
+                data.dados.forEach(item => {
+                    if (!vendedores[item.vendedor]) {
+                        vendedores[item.vendedor] = {
+                            vendedor: item.vendedor,
+                            loja: item.loja || 'N/A',
+                            total_propostas: 0,
+                            total_comissoes: 0
+                        };
+                    }
+                    vendedores[item.vendedor].total_propostas++;
+                    vendedores[item.vendedor].total_comissoes += item.valor_comissao || 0;
+                });
+                
+                tbody.innerHTML = Object.values(vendedores).map((vend, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${vend.vendedor}</strong></td>
+                        <td>${vend.loja}</td>
+                        <td class="has-text-right">${vend.total_propostas}</td>
+                        <td class="has-text-right">R$ ${vend.total_comissoes.toFixed(2)}</td>
+                        <td>
+                            <button class="button is-small is-info" onclick="verDetalhes('${vend.vendedor}')">
+                                <span class="icon"><i class="fas fa-eye"></i></span>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="has-text-centered has-text-grey">Nenhum vendedor encontrado</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            document.getElementById('tbody-vendedores').innerHTML = '<tr><td colspan="6" class="has-text-danger">Erro ao carregar dados</td></tr>';
+        });
+}
+
+function verDetalhes(vendedor) {
+    alert('Detalhes de: ' + vendedor);
+    // Implementar modal com detalhes
+}
+</script>
+{% endblock %}

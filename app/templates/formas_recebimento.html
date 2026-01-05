@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Formas de Recebimento - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            <span class="icon"><i class="fas fa-credit-card"></i></span>
+            <span>Formas de Recebimento</span>
+        </h1>
+        <p class="subtitle">Gerencie as formas de recebimento cadastradas do sistema</p>
+
+        <!-- Aviso -->
+        <div class="notification is-info is-light">
+            <button class="delete"></button>
+            <p><strong>ℹ️ Informação:</strong> As formas de recebimento são sincronizadas automaticamente do arquivo "Pedido de Venda". Aqui você pode apenas visualizar, desativar ou deletar.</p>
+        </div>
+
+        <!-- Lista de Formas de Recebimento -->
+        <div class="box">
+            <h2 class="subtitle is-5">
+                <span class="icon"><i class="fas fa-list"></i></span>
+                <span>Formas Cadastradas</span>
+            </h2>
+            <div id="lista-formas" class="content">
+                <p class="has-text-grey">Carregando...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para Confirmação -->
+<div id="modal-confirmacao" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Confirmação</p>
+            <button class="delete" aria-label="close" onclick="fecharModalConfirmacao()"></button>
+        </header>
+        <section class="modal-card-body">
+            <p id="modal-mensagem"></p>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalConfirmacao()">Cancelar</button>
+            <button class="button is-danger" id="btn-confirmar" onclick="confirmarAcao()">Confirmar</button>
+        </footer>
+    </div>
+</div>
+
+<style>
+    .forma-card {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #f5f5f5;
+        border-left: 4px solid #3273dc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .forma-info {
+        flex: 1;
+    }
+
+    .forma-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .forma-actions button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .delete-button {
+        cursor: pointer;
+    }
+
+    /* Switch/Toggle Style */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+        margin: 0 0.5rem 0 0;
+        vertical-align: middle;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #48c774;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    /* Disabled state para switch */
+    input:disabled + .slider {
+        background-color: #d3d3d3;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    input:disabled + .slider:before {
+        background-color: #999;
+    }
+
+    /* Layout para VP e Tabela Progressiva */
+    .vp-config {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem 0;
+        background-color: transparent;
+        border-radius: 0;
+    }
+
+    .vp-toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vp-selector-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vp-selector-wrapper select {
+        flex: 1;
+    }
+
+    /* Layout para Taxa de Juros */
+    .juros-config {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem 0;
+        background-color: transparent;
+        border-radius: 0;
+        flex-wrap: wrap;
+    }
+
+    .juros-toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .juros-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+</style>
+
+<script>
+let formas = [];
+let acaoAtual = null;
+let idAtual = null;
+
+// Carregar dados ao iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    carregarFormas();
+    
+    // Fechar notificação
+    document.querySelectorAll('.notification .delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.parentElement.remove();
+        });
+    });
+});
+
+function carregarFormas() {
+    fetch('/api/formas-recebimento')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                formas = data.dados;
+                renderizarFormas();
+            } else {
+                alert('Erro: ' + data.mensagem);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao carregar formas de recebimento');
+        });
+}
+
+function renderizarFormas() {
+    const container = document.getElementById('lista-formas');
+    
+    if (formas.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">Nenhuma forma de recebimento cadastrada. Faça upload do arquivo "Pedido de Venda".</p>';
+        return;
+    }
+    
+    renderizarFormasLista();
+}
+
+function renderizarFormasLista() {
+    const container = document.getElementById('lista-formas');
+    
+    let html = '';
+    formas.forEach(forma => {
+        const status = forma.status === 'ativo' ? 'Ativo' : 'Inativo';
+        const classeBg = forma.status === 'ativo' ? '' : 'has-background-warning-light';
+        const taxaJuros = forma.taxa_juros || 0;
+        const aplicarVp = forma.aplicar_vp || false;
+        
+        html += `
+            <div class="forma-card ${classeBg}">
+                <div class="forma-info">
+                    <h3 class="subtitle is-6" style="margin-bottom: 0.25rem;">${forma.nome}</h3>
+                    <div class="is-size-7 has-text-grey" style="margin-bottom: 0.5rem;">
+                        <div>Status: <strong>${status}</strong></div>
+                    </div>
+                    
+                    <!-- CONTROLE DE TAXA DE JUROS -->
+                    ${forma.status === 'ativo' ? `
+                    <div class="juros-config">
+                        <div class="juros-toggle-wrapper">
+                            <label class="switch">
+                                <input type="checkbox" id="juros-${forma._id}" ${aplicarVp ? 'checked' : ''} 
+                                       onchange="toggleTaxaJuros('${forma._id}')">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="is-size-7">Aplicar Taxa de Juros</span>
+                        </div>
+                        
+                        <div class="juros-input-wrapper" id="input-${forma._id}" style="display: ${aplicarVp ? 'flex' : 'none'};">
+                            <label class="label is-size-7" style="margin: 0;">Taxa Mensal (%):</label>
+                            <input type="number" class="input is-small" id="taxa-${forma._id}" 
+                                   value="${taxaJuros}" step="0.01" min="0" max="100"
+                                   placeholder="Ex: 2.50"
+                                   onchange="salvarTaxaJuros('${forma._id}', this.value)"
+                                   style="width: 100px;">
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="forma-actions">
+        `;
+        
+        if (forma.status === 'ativo') {
+            html += `
+                <button class="button is-warning is-small" onclick="desativarForma('${forma._id}', '${forma.nome}')">
+                    <span class="icon"><i class="fas fa-pause"></i></span>
+                    <span>Desativar</span>
+                </button>
+            `;
+        }
+        
+        html += `
+                <button class="button is-danger is-small" onclick="deletarForma('${forma._id}', '${forma.nome}')">
+                    <span class="icon"><i class="fas fa-trash"></i></span>
+                    <span>Deletar</span>
+                </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function toggleTaxaJuros(formaId) {
+    const switchEl = document.getElementById(`juros-${formaId}`);
+    const inputWrapper = document.getElementById(`input-${formaId}`);
+    
+    if (switchEl.checked) {
+        // Ativar: mostrar input
+        if (inputWrapper) {
+            inputWrapper.style.display = 'flex';
+        }
+    } else {
+        // Desativar: esconder input e salvar 0
+        if (inputWrapper) {
+            inputWrapper.style.display = 'none';
+        }
+        salvarTaxaJuros(formaId, '0');
+    }
+}
+
+function salvarTaxaJuros(formaId, taxa) {
+    const taxaNumero = parseFloat(taxa) || 0;
+    const switchEl = document.getElementById(`juros-${formaId}`);
+    
+    fetch(`/api/formas-recebimento/${formaId}/aplicar-vp`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            aplicar_vp: taxaNumero > 0 ? true : false,
+            taxa_juros: taxaNumero
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            console.log('Taxa de juros atualizada com sucesso');
+        } else {
+            alert('Erro: ' + data.mensagem);
+            carregarFormas();
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar taxa de juros');
+        carregarFormas();
+    });
+}
+
+function desativarForma(id, nome) {
+    idAtual = id;
+    acaoAtual = 'desativar';
+    document.getElementById('modal-mensagem').textContent = `Tem certeza que deseja desativar a forma de recebimento "${nome}"?`;
+    document.getElementById('btn-confirmar').classList.remove('is-danger');
+    document.getElementById('btn-confirmar').classList.add('is-warning');
+    document.getElementById('modal-confirmacao').classList.add('is-active');
+}
+
+function deletarForma(id, nome) {
+    idAtual = id;
+    acaoAtual = 'deletar';
+    document.getElementById('modal-mensagem').textContent = `Tem certeza que deseja deletar permanentemente a forma de recebimento "${nome}"?`;
+    document.getElementById('btn-confirmar').classList.remove('is-warning');
+    document.getElementById('btn-confirmar').classList.add('is-danger');
+    document.getElementById('modal-confirmacao').classList.add('is-active');
+}
+
+function confirmarAcao() {
+    if (acaoAtual === 'desativar') {
+        fetch(`/api/formas-recebimento/${idAtual}/desativar`, { method: 'PUT' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    alert('Forma de recebimento desativada com sucesso!');
+                    fecharModalConfirmacao();
+                    carregarFormas();
+                } else {
+                    alert('Erro: ' + data.mensagem);
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+    } else if (acaoAtual === 'deletar') {
+        fetch(`/api/formas-recebimento/${idAtual}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    alert('Forma de recebimento deletada com sucesso!');
+                    fecharModalConfirmacao();
+                    carregarFormas();
+                } else {
+                    alert('Erro: ' + data.mensagem);
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+    }
+}
+
+function fecharModalConfirmacao() {
+    document.getElementById('modal-confirmacao').classList.remove('is-active');
+    acaoAtual = null;
+    idAtual = null;
+}
+
+
+</script>
+{% endblock %}

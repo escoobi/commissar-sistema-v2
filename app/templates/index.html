@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Início - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="hero is-medium" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="hero-body">
+        <div class="container has-text-centered">
+            <h1 class="title is-1 has-text-white">
+                <i class="fas fa-chart-bar"></i> Sistema de Comissão
+            </h1>
+            <h2 class="subtitle is-4 has-text-white-bis">
+                Honda Rondo Motos v2.0
+            </h2>
+            <p class="has-text-white-ter mb-5">
+                Processamento de vendas e cálculo automático de comissões
+            </p>
+            
+            <div class="buttons is-centered">
+                <a href="/processar" class="button is-large is-white">
+                    <span class="icon">
+                        <i class="fas fa-upload"></i>
+                    </span>
+                    <span>Começar</span>
+                </a>
+                <a href="/relatorios" class="button is-large is-outlined is-white">
+                    <span class="icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </span>
+                    <span>Relatórios</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <!-- Card: Processar Arquivos -->
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-image">
+                        <figure class="image is-4by3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        </figure>
+                    </div>
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <i class="fas fa-file-csv" style="font-size: 2em; color: #667eea;"></i>
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-4">Processar</p>
+                            </div>
+                        </div>
+                        <div class="content">
+                            Faça upload dos arquivos CSV/XLSX e processe os dados de vendas e propostas automaticamente.
+                            <br>
+                            <time>Rápido e preciso</time>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/processar" class="card-footer-item">Ir para Processamento</a>
+                    </footer>
+                </div>
+            </div>
+            
+            <!-- Card: Relatórios -->
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-image">
+                        <figure class="image is-4by3" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></figure>
+                    </div>
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <i class="fas fa-chart-pie" style="font-size: 2em; color: #f5576c;"></i>
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-4">Relatórios</p>
+                            </div>
+                        </div>
+                        <div class="content">
+                            Visualize relatórios detalhados de comissões por vendedor, cidade e período.
+                            <br>
+                            <time>Dados em tempo real</time>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/relatorios" class="card-footer-item">Ver Relatórios</a>
+                    </footer>
+                </div>
+            </div>
+            
+            <!-- Card: Vendedores -->
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-image">
+                        <figure class="image is-4by3" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></figure>
+                    </div>
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <i class="fas fa-users" style="font-size: 2em; color: #00f2fe;"></i>
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-4">Vendedores</p>
+                            </div>
+                        </div>
+                        <div class="content">
+                            Consulte informações e desempenho de cada vendedor e suas respectivas lojas.
+                            <br>
+                            <time>Gestão centralizada</time>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/vendedores" class="card-footer-item">Listar Vendedores</a>
+                    </footer>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de Recursos -->
+<section class="section has-background-light">
+    <div class="container">
+        <h2 class="title is-3 has-text-centered mb-6">Recursos Principais</h2>
+        
+        <div class="columns">
+            <div class="column">
+                <div class="box has-background-white">
+                    <p class="heading">
+                        <i class="fas fa-database"></i> MongoDB
+                    </p>
+                    <p class="title">Banco de Dados Moderno</p>
+                    <p>Armazenamento escalável e flexível de documentos JSON</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="box has-background-white">
+                    <p class="heading">
+                        <i class="fas fa-python"></i> Python/Flask
+                    </p>
+                    <p class="title">Backend Robusto</p>
+                    <p>Framework web leve e poderoso para aplicações modernas</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="box has-background-white">
+                    <p class="heading">
+                        <i class="fas fa-chart-line"></i> Pandas
+                    </p>
+                    <p class="title">Análise de Dados</p>
+                    <p>Processamento eficiente de dados tabulares e cálculos</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="box has-background-white">
+                    <p class="heading">
+                        <i class="fas fa-paint-brush"></i> Bulma CSS
+                    </p>
+                    <p class="title">Design Responsivo</p>
+                    <p>Interface moderna e amigável com componentes do Bulma</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

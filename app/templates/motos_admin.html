@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Motos - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Gestão de Motocicletas</h1>
+        <p class="subtitle">Motos cadastradas automaticamente via upload dos relatórios</p>
+        
+        <!-- Lista de Motos -->
+        <div class="box">
+            <h2 class="title is-4">
+                <i class="fas fa-list"></i> Motos Cadastradas
+            </h2>
+            
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <label class="checkbox">
+                            <input type="checkbox" id="mostrar-inativos" value="true">
+                            Mostrar Inativos
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="table is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>Tipo</th>
+                            <th>Valor Tabela</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-motos">
+                        <tr>
+                            <td colspan="4" class="has-text-centered has-text-grey">
+                                <i class="fas fa-spinner fa-spin"></i> Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para Editar -->
+<div class="modal" id="modal-editar">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Editar Motocicleta</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form id="form-editar-moto">
+                <input type="hidden" name="moto_id">
+                
+                <div class="field">
+                    <label class="label">Modelo</label>
+                    <div class="control">
+                        <input class="input" type="text" name="nome" required>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="alta_cc">
+                            Alta CC
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Valor Tabela (R$)</label>
+                    <div class="control">
+                        <input class="input" type="number" name="valor_tabela" min="0" step="0.01">
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Status</label>
+                    <div class="control">
+                        <div class="select">
+                            <select name="status">
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="button is-success" onclick="salvarMoto()">Salvar</button>
+        </footer>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    carregarMotos();
+    
+    // Checkbox para mostrar inativos
+    document.getElementById('mostrar-inativos').addEventListener('change', function() {
+        carregarMotos();
+    });
+    
+    // Form para editar
+    document.getElementById('form-editar-moto').addEventListener('submit', function(e) {
+        e.preventDefault();
+        salvarMoto();
+    });
+    
+    // Event listeners para fechar o modal
+    const closeButtons = document.querySelectorAll('#modal-editar .delete, #modal-editar .modal-background');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', fecharModalEditar);
+    });
+});
+
+function carregarMotos() {
+    const status = document.getElementById('mostrar-inativos').checked ? '' : 'ativo';
+    const url = status ? `/api/motos?status=${status}` : '/api/motos';
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Motos:', data);
+            const tbody = document.getElementById('tbody-motos');
+            
+            if (data.dados && data.dados.length > 0) {
+                tbody.innerHTML = data.dados.map(item => `
+                    <tr>
+                        <td><strong>${item.nome}</strong></td>
+                        <td>
+                            <span class="tag ${item.alta_cc ? 'is-danger' : 'is-info'}">
+                                ${item.alta_cc ? 'Alta CC' : 'Baixa CC'}
+                            </span>
+                        </td>
+                        <td>
+                            R$ ${(item.valor_tabela || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </td>
+                        <td>
+                            <span class="tag ${item.status === 'ativo' ? 'is-success' : 'is-light'}">
+                                ${item.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="buttons are-small">
+                                <button class="button is-info" onclick="abrirModalEditar('${item._id}')">
+                                    <span class="icon is-small"><i class="fas fa-edit"></i></span>
+                                </button>
+                                <button class="button is-danger" onclick="excluirMoto('${item._id}')">
+                                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="has-text-centered has-text-grey">Nenhuma moto encontrada</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            document.getElementById('tbody-motos').innerHTML = '<tr><td colspan="4" class="has-text-danger">Erro ao carregar motos</td></tr>';
+        });
+}
+
+function abrirModalEditar(motoId) {
+    fetch(`/api/motos/${motoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.dados) {
+                const moto = data.dados;
+                const form = document.getElementById('form-editar-moto');
+                
+                form.querySelector('[name="moto_id"]').value = moto._id;
+                form.querySelector('[name="nome"]').value = moto.nome;
+                form.querySelector('[name="alta_cc"]').checked = moto.alta_cc || false;
+                form.querySelector('[name="valor_tabela"]').value = moto.valor_tabela || 0;
+                form.querySelector('[name="status"]').value = moto.status;
+                
+                document.getElementById('modal-editar').classList.add('is-active');
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+}
+
+function fecharModalEditar() {
+    document.getElementById('modal-editar').classList.remove('is-active');
+}
+
+function salvarMoto() {
+    const form = document.getElementById('form-editar-moto');
+    const formData = new FormData(form);
+    const dados = Object.fromEntries(formData);
+    const motoId = dados.moto_id;
+    delete dados.moto_id;
+    
+    // Converte checkbox para boolean
+    dados.alta_cc = formData.has('alta_cc');
+    dados.valor_tabela = parseFloat(formData.get('valor_tabela')) || 0;
+    
+    fetch(`/api/motos/${motoId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            fecharModalEditar();
+            carregarMotos();
+            alert('Moto atualizada com sucesso!');
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => console.error('Erro:', error));
+}
+
+function excluirMoto(motoId) {
+    if (confirm('Tem certeza que deseja inativar esta moto?')) {
+        fetch(`/api/motos/${motoId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                carregarMotos();
+                alert('Moto inativada com sucesso!');
+            } else {
+                alert('Erro: ' + data.mensagem);
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+    }
+}
+</script>
+{% endblock %}

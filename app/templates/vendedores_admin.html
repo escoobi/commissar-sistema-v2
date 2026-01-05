@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Vendedores - Sistema de Comissão{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Gestão de Vendedores</h1>
+        <p class="subtitle">Vendedores cadastrados automaticamente via upload dos relatórios</p>
+        
+        <!-- Lista de Vendedores -->
+        <div class="box">
+            <h2 class="title is-4">
+                <i class="fas fa-list"></i> Vendedores Cadastrados
+            </h2>
+            
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <label class="checkbox">
+                            <input type="checkbox" id="mostrar-inativos" value="true">
+                            Mostrar Inativos
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="table is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Cidade</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-vendedores">
+                        <tr>
+                            <td colspan="5" class="has-text-centered has-text-grey">
+                                <i class="fas fa-spinner fa-spin"></i> Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para Editar -->
+<div class="modal" id="modal-editar">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Editar Vendedor</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form id="form-editar-vendedor">
+                <input type="hidden" name="vendor_id">
+                
+                <div class="field">
+                    <label class="label">Nome</label>
+                    <div class="control">
+                        <input class="input" type="text" name="nome" required>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Cidade</label>
+                    <div class="control">
+                        <input class="input" type="text" name="cidade">
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="interno">
+                            Vendedor Interno
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Status</label>
+                    <div class="control">
+                        <div class="select">
+                            <select name="status">
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="button is-info" onclick="salvarVendedor()">Salvar</button>
+        </footer>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    carregarVendedores();
+    
+    // Form novo vendedor
+    document.getElementById('form-novo-vendedor').addEventListener('submit', function(e) {
+        e.preventDefault();
+        adicionarVendedor();
+    });
+    
+    // Checkbox mostrar inativos
+    document.getElementById('mostrar-inativos').addEventListener('change', function() {
+        carregarVendedores(this.checked ? 'todos' : 'ativo');
+    });
+    
+    // Fechar modal
+    document.querySelector('#modal-editar .delete').addEventListener('click', fecharModalEditar);
+});
+
+function carregarVendedores(status = 'ativo') {
+    let url = `/api/vendedores?status=${status === 'todos' ? '' : status}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Vendedores:', data);
+            const tbody = document.getElementById('tbody-vendedores');
+            
+            if (data.dados && data.dados.length > 0) {
+                tbody.innerHTML = data.dados.map(item => `
+                    <tr>
+                        <td><strong>${item.nome}</strong></td>
+                        <td>${item.cidade || '-'}</td>
+                        <td>
+                            <span class="tag ${item.interno ? 'is-info' : 'is-warning'}">
+                                ${item.interno ? 'Interno' : 'Externo'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="tag ${item.status === 'ativo' ? 'is-success' : 'is-light'}">
+                                ${item.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="buttons are-small">
+                                <button class="button is-info" onclick="abrirModalEditar('${item._id}')">
+                                    <span class="icon is-small"><i class="fas fa-edit"></i></span>
+                                </button>
+                                <button class="button is-danger" onclick="excluirVendedor('${item._id}')">
+                                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="has-text-centered has-text-grey">Nenhum vendedor encontrado</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            document.getElementById('tbody-vendedores').innerHTML = '<tr><td colspan="5" class="has-text-danger">Erro ao carregar vendedores</td></tr>';
+        });
+}
+
+function abrirModalEditar(vendorId) {
+    fetch(`/api/vendedores/${vendorId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.dados) {
+                const vendor = data.dados;
+                const form = document.getElementById('form-editar-vendedor');
+                
+                form.querySelector('[name="vendor_id"]').value = vendor._id;
+                form.querySelector('[name="nome"]').value = vendor.nome;
+                form.querySelector('[name="cidade"]').value = vendor.cidade || '';
+                form.querySelector('[name="interno"]').checked = vendor.interno || false;
+                form.querySelector('[name="status"]').value = vendor.status;
+                
+                document.getElementById('modal-editar').classList.add('is-active');
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+}
+
+function fecharModalEditar() {
+    document.getElementById('modal-editar').classList.remove('is-active');
+}
+
+function salvarVendedor() {
+    const form = document.getElementById('form-editar-vendedor');
+    const formData = new FormData(form);
+    const dados = Object.fromEntries(formData);
+    const vendorId = dados.vendor_id;
+    delete dados.vendor_id;
+    
+    // Converte checkbox para boolean
+    dados.interno = formData.has('interno');
+    
+    fetch(`/api/vendedores/${vendorId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            fecharModalEditar();
+            carregarVendedores();
+            alert('Vendedor atualizado com sucesso!');
+        } else {
+            alert('Erro: ' + data.mensagem);
+        }
+    })
+    .catch(error => console.error('Erro:', error));
+}
+
+function excluirVendedor(vendorId) {
+    if (confirm('Tem certeza que deseja inativar este vendedor?')) {
+        fetch(`/api/vendedores/${vendorId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sucesso') {
+                carregarVendedores();
+                alert('Vendedor inativado com sucesso!');
+            } else {
+                alert('Erro: ' + data.mensagem);
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+    }
+}
+
+// Event listeners para fechar o modal
+document.addEventListener('DOMContentLoaded', function() {
+    const closeButtons = document.querySelectorAll('#modal-editar .delete, #modal-editar .modal-background');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', fecharModalEditar);
+    });
+});
+</script>
+{% endblock %}
